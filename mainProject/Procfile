@@ -1,2 +1,3 @@
 web: daphne -b 0.0.0.0 -p $PORT mainProject.asgi:application
-worker: celery -A mainProject worker --loglevel=INFO --concurrency=2 --hostname=render-celery@%h
+worker1: SEASHELL_WORKER_NAME=render-celery-1 celery -A mainProject worker --loglevel=INFO --concurrency=1 --prefetch-multiplier=1 --hostname=render-celery-1@%h
+worker2: SEASHELL_WORKER_NAME=render-celery-2 celery -A mainProject worker --loglevel=INFO --concurrency=1 --prefetch-multiplier=1 --hostname=render-celery-2@%h
