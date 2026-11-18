@@ -11,7 +11,7 @@ from channels.layers import get_channel_layer
 from channels.testing import WebsocketCommunicator
 from PIL import Image
 from django.contrib.auth import get_user_model
-from django.test import TestCase, TransactionTestCase, override_settings
+from django.test import RequestFactory, TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
@@ -21,6 +21,7 @@ from .consumers import ClassificationProgressConsumer
 from .processing.events import batch_group_name, build_batch_progress
 from .processing.benchmark import _metrics
 from .processing.tasks import classify_image
+from .views import classification_image
 
 
 class AuthenticationTests(TestCase):
@@ -266,7 +267,10 @@ class ClassificationTaskTests(TestCase):
 			image=self.create_image(),
 		)
 
-		with patch.dict(os.environ, {'SEASHELL_NODE_NAME': 'NODE_TEST'}):
+		with patch.dict(os.environ, {
+			'SEASHELL_NODE_NAME': 'NODE_TEST',
+			'SEASHELL_WORKER_NAME': 'WORKER_TEST',
+		}):
 			with patch(
 				'django.db.models.fields.files.FieldFile.path',
 				new_callable=PropertyMock,
@@ -277,7 +281,7 @@ class ClassificationTaskTests(TestCase):
 		result.refresh_from_db()
 		batch.refresh_from_db()
 		self.assertEqual(task_result.result['node_name'], 'NODE_TEST')
-		self.assertTrue(task_result.result['worker_name'])
+		self.assertEqual(task_result.result['worker_name'], 'WORKER_TEST')
 		self.assertEqual(result.status, ClassificationResult.Status.COMPLETED)
 		self.assertTrue(result.predicted_class)
 		self.assertIsNotNone(result.confidence)
@@ -319,6 +323,24 @@ class MultiImageUploadTests(TestCase):
 			password='Strong-password-123',
 		)
 		self.client.force_login(self.user)
+
+	def test_authenticated_owner_can_load_uploaded_image(self):
+		batch = ClassificationBatch.objects.create(
+			user=self.user,
+			total_images=1,
+		)
+		result = ClassificationResult.objects.create(
+			batch=batch,
+			image=self.create_image('private.png'),
+		)
+		request = RequestFactory().get(result.image.url)
+		request.user = self.user
+
+		response = classification_image(request, result.image.name)
+
+		self.assertEqual(response.status_code, 200)
+		self.assertTrue(b''.join(response.streaming_content))
+		response.close()
 
 	def tearDown(self):
 		self.media_override.disable()

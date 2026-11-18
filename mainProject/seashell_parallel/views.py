@@ -1,4 +1,5 @@
 import json
+import mimetypes
 from pathlib import Path
 
 from django.contrib import messages
@@ -6,8 +7,8 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.staticfiles import finders
 from django.core.paginator import Paginator
-from django.http import Http404
-from django.shortcuts import redirect, render
+from django.http import FileResponse, Http404
+from django.shortcuts import get_object_or_404, redirect, render
 from django.templatetags.static import static
 from django.utils.http import url_has_allowed_host_and_scheme
 
@@ -42,6 +43,21 @@ def _prepare_batches(user, limit=None, queryset=None):
 			sum(confidences) / len(confidences) if confidences else None
 		)
 	return batches
+
+
+@login_required
+def classification_image(request, path):
+	result = get_object_or_404(
+		ClassificationResult,
+		image=path,
+		batch__user=request.user,
+	)
+	image_file = result.image.open('rb')
+	content_type, _ = mimetypes.guess_type(result.image.name)
+	return FileResponse(
+		image_file,
+		content_type=content_type or 'application/octet-stream',
+	)
 
 
 @login_required

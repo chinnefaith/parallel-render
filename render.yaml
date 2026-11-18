@@ -11,6 +11,10 @@ envVarGroups:
         value: "true"
       - key: CELERY_TASK_ALWAYS_EAGER
         value: "true"
+      - key: SEASHELL_NODE_NAME
+        value: NODE_RENDER_FREE
+      - key: SEASHELL_WORKER_NAME
+        value: render-web-eager
 
 services:
   - type: keyvalue
