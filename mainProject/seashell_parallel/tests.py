@@ -11,6 +11,7 @@ from channels.layers import get_channel_layer
 from channels.testing import WebsocketCommunicator
 from PIL import Image
 from django.contrib.auth import get_user_model
+from django.http import Http404
 from django.test import RequestFactory, TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -341,6 +342,36 @@ class MultiImageUploadTests(TestCase):
 		self.assertEqual(response.status_code, 200)
 		self.assertTrue(b''.join(response.streaming_content))
 		response.close()
+
+	def test_missing_uploaded_image_returns_404(self):
+		batch = ClassificationBatch.objects.create(
+			user=self.user,
+			total_images=1,
+		)
+		result = ClassificationResult.objects.create(
+			batch=batch,
+			image='classification_images/missing.png',
+		)
+		request = RequestFactory().get(result.image.url)
+		request.user = self.user
+
+		with self.assertRaises(Http404):
+			classification_image(request, result.image.name)
+
+	def test_history_renders_missing_image_placeholder(self):
+		batch = ClassificationBatch.objects.create(
+			user=self.user,
+			total_images=1,
+		)
+		ClassificationResult.objects.create(
+			batch=batch,
+			image='classification_images/missing.png',
+		)
+
+		response = self.client.get(reverse('history'))
+
+		self.assertContains(response, 'Image unavailable')
+		self.assertContains(response, 'result-thumbnail-placeholder')
 
 	def tearDown(self):
 		self.media_override.disable()

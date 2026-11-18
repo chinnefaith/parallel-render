@@ -36,7 +36,7 @@
             <div>
                 <p class="eyebrow">Your workspace</p>
                 <h1>Batch history</h1>
-                <p class="intro">All classification batches belonging to {{ user.username }}. The dashboard keeps the latest batch for active monitoring.</p>
+                <p class="intro">All classification batches belonging to {{ user.username }}. The dashboard keeps the latest batch for active monitoring. Images on this free Render setup may disappear after a restart.</p>
             </div>
             <span class="history-count">{{ page_obj.paginator.count }} batch{{ page_obj.paginator.count|pluralize }}</span>
         </section>
@@ -65,7 +65,10 @@
                         <tbody>
                             {% for result in batch.results.all %}
                                 <tr>
-                                    <td title="{{ result.image.name }}"><img class="result-thumbnail" src="{{ result.image.url }}" alt="{{ result.image.name }}"></td>
+                                    <td class="result-image-cell" title="{{ result.image.name }}">
+                                        <img class="result-thumbnail" src="{{ result.image.url }}" alt="Uploaded classification image">
+                                        <span class="result-thumbnail-placeholder" hidden>Image unavailable</span>
+                                    </td>
                                     <td><span class="result-status">{{ result.status }}</span></td>
                                     <td>{{ result.predicted_class|default:"-" }}</td>
                                     <td>{% if result.confidence is not None %}{{ result.confidence|floatformat:3 }}{% else %}-{% endif %}</td>

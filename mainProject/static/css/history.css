@@ -313,6 +313,26 @@ tbody tr:last-child td {
 	object-fit: cover;
 }
 
+.result-thumbnail-placeholder {
+	display: grid;
+	width: 58px;
+	height: 46px;
+	place-items: center;
+	padding: .2rem;
+	border: 1px dashed var(--line);
+	border-radius: 5px;
+	background: var(--beige);
+	color: var(--muted);
+	font-size: .62rem;
+	line-height: 1.15;
+	text-align: center;
+	white-space: normal;
+}
+
+.result-thumbnail-placeholder[hidden] {
+	display: none;
+}
+
 .no-results {
 	padding: 1.2rem;
 	color: var(--muted);

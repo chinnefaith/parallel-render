@@ -52,7 +52,10 @@ def classification_image(request, path):
 		image=path,
 		batch__user=request.user,
 	)
-	image_file = result.image.open('rb')
+	try:
+		image_file = result.image.open('rb')
+	except FileNotFoundError as exc:
+		raise Http404('Uploaded image is no longer available.') from exc
 	content_type, _ = mimetypes.guess_type(result.image.name)
 	return FileResponse(
 		image_file,
