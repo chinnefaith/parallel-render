@@ -1,3 +1,3 @@
-web: daphne -b 0.0.0.0 -p $PORT mainProject.asgi:application
+web: python manage.py shell -c "from django.core.files.storage import storages; print('MEDIA_STORAGE_BACKEND=' + type(storages['default']).__name__)" && daphne -b 0.0.0.0 -p $PORT mainProject.asgi:application
 worker1: SEASHELL_WORKER_NAME=render-celery-1 celery -A mainProject worker --loglevel=INFO --concurrency=1 --prefetch-multiplier=1 --hostname=render-celery-1@%h
 worker2: SEASHELL_WORKER_NAME=render-celery-2 celery -A mainProject worker --loglevel=INFO --concurrency=1 --prefetch-multiplier=1 --hostname=render-celery-2@%h
