@@ -36,7 +36,7 @@
             <div>
                 <p class="eyebrow">Your workspace</p>
                 <h1>Batch history</h1>
-                <p class="intro">All classification batches belonging to {{ user.username }}. The dashboard keeps the latest batch for active monitoring. Images on this free Render setup may disappear after a restart.</p>
+                <p class="intro">All classification batches belonging to {{ user.username }}. The dashboard keeps the latest batch for active monitoring. Images that can no longer be loaded are marked as unavailable.</p>
             </div>
             <span class="history-count">{{ page_obj.paginator.count }} batch{{ page_obj.paginator.count|pluralize }}</span>
         </section>

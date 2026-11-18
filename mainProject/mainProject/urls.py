@@ -9,12 +9,15 @@ urlpatterns = [
     path('', include('seashell_parallel.urls')),
 ]
 
-if settings.DEBUG:
+if settings.DEBUG and not settings.CLOUDINARY_STORAGE_CONFIGURED:
     urlpatterns += static(
         settings.MEDIA_URL,
         document_root=settings.MEDIA_ROOT,
     )
-elif settings.ALLOW_EPHEMERAL_MEDIA:
+elif (
+    settings.ALLOW_EPHEMERAL_MEDIA
+    and not settings.CLOUDINARY_STORAGE_CONFIGURED
+):
     urlpatterns += [
         path(
             'media/<path:path>',

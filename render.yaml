@@ -8,7 +8,9 @@ envVarGroups:
       - key: ALLOWED_HOSTS
         value: ".onrender.com,localhost,127.0.0.1"
       - key: ALLOW_EPHEMERAL_MEDIA
-        value: "true"
+        value: "false"
+      - key: CLOUDINARY_URL
+        sync: false
       - key: CELERY_TASK_ALWAYS_EAGER
         value: "false"
       - key: SEASHELL_NODE_NAME
@@ -23,7 +25,7 @@ services:
     region: singapore
     ipAllowList: []
 
-  # Free demo: runs Daphne and a Celery worker together; uploads are ephemeral.
+  # Free demo: two Celery workers share the web service; uploads use Cloudinary.
   - type: web
     name: parallels-web
     runtime: python

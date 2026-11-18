@@ -3,8 +3,10 @@ ai-edge-litert==2.3.0
 celery==5.6.3
 channels==4.3.2
 channels-redis==4.3.0
+cloudinary==1.47.0
 daphne==4.2.1
 dj-database-url==2.3.0
+django-cloudinary-storage==0.3.0
 django-storages[s3]==1.14.6
 djangorestframework==3.18.1
 honcho==2.0.0

@@ -50,6 +50,30 @@ SECURE_SSL_REDIRECT = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 
+cloudinary_url = os.environ.get('CLOUDINARY_URL')
+cloudinary_credentials = {
+    'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
+    'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
+}
+cloudinary_credentials_count = sum(
+    bool(value) for value in cloudinary_credentials.values()
+)
+if (
+    not cloudinary_url
+    and cloudinary_credentials_count not in {0, len(cloudinary_credentials)}
+):
+    raise ImproperlyConfigured(
+        'Set CLOUDINARY_URL or all of CLOUDINARY_CLOUD_NAME, '
+        'CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET.'
+    )
+
+CLOUDINARY_STORAGE_CONFIGURED = bool(cloudinary_url) or (
+    cloudinary_credentials_count == len(cloudinary_credentials)
+)
+if CLOUDINARY_STORAGE_CONFIGURED and not cloudinary_url:
+    CLOUDINARY_STORAGE = cloudinary_credentials
+
 
 # ============================================================
 # APPLICATIONS
@@ -69,6 +93,8 @@ INSTALLED_APPS = [
     # Third-party apps
     'rest_framework',
     'channels',
+    'cloudinary_storage',
+    'cloudinary',
 
     # Local apps
     'seashell_parallel',
@@ -208,9 +234,13 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 STORAGES = {
     'default': {
         'BACKEND': (
-            'storages.backends.s3.S3Storage'
-            if os.environ.get('AWS_STORAGE_BUCKET_NAME')
-            else 'django.core.files.storage.FileSystemStorage'
+            'cloudinary_storage.storage.MediaCloudinaryStorage'
+            if CLOUDINARY_STORAGE_CONFIGURED
+            else (
+                'storages.backends.s3.S3Storage'
+                if os.environ.get('AWS_STORAGE_BUCKET_NAME')
+                else 'django.core.files.storage.FileSystemStorage'
+            )
         ),
     },
     'staticfiles': {
@@ -242,20 +272,21 @@ ALLOW_EPHEMERAL_MEDIA = (
 )
 
 if not DEBUG:
-    if AWS_STORAGE_BUCKET_NAME and not all((
-        AWS_ACCESS_KEY_ID,
-        AWS_SECRET_ACCESS_KEY,
-        AWS_S3_REGION_NAME,
-    )):
-        raise ImproperlyConfigured(
-            'S3 media storage requires AWS_ACCESS_KEY_ID, '
-            'AWS_SECRET_ACCESS_KEY, and AWS_S3_REGION_NAME.'
-        )
-    if not AWS_STORAGE_BUCKET_NAME and not ALLOW_EPHEMERAL_MEDIA:
-        raise ImproperlyConfigured(
-            'Configure S3 media storage or explicitly enable '
-            'ALLOW_EPHEMERAL_MEDIA for a disposable deployment.'
-        )
+    if not CLOUDINARY_STORAGE_CONFIGURED:
+        if AWS_STORAGE_BUCKET_NAME and not all((
+            AWS_ACCESS_KEY_ID,
+            AWS_SECRET_ACCESS_KEY,
+            AWS_S3_REGION_NAME,
+        )):
+            raise ImproperlyConfigured(
+                'S3 media storage requires AWS_ACCESS_KEY_ID, '
+                'AWS_SECRET_ACCESS_KEY, and AWS_S3_REGION_NAME.'
+            )
+        if not AWS_STORAGE_BUCKET_NAME and not ALLOW_EPHEMERAL_MEDIA:
+            raise ImproperlyConfigured(
+                'Configure Cloudinary, S3 media storage, or explicitly enable '
+                'ALLOW_EPHEMERAL_MEDIA for a disposable deployment.'
+            )
 
 
 # ============================================================
