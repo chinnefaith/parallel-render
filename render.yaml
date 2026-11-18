@@ -10,11 +10,11 @@ envVarGroups:
       - key: ALLOW_EPHEMERAL_MEDIA
         value: "true"
       - key: CELERY_TASK_ALWAYS_EAGER
-        value: "true"
+        value: "false"
       - key: SEASHELL_NODE_NAME
         value: NODE_RENDER_FREE
       - key: SEASHELL_WORKER_NAME
-        value: render-web-eager
+        value: render-celery
 
 services:
   - type: keyvalue
@@ -23,7 +23,7 @@ services:
     region: singapore
     ipAllowList: []
 
-  # Disposable demo: classification runs in the web process; uploads are ephemeral.
+  # Free demo: runs Daphne and a Celery worker together; uploads are ephemeral.
   - type: web
     name: parallels-web
     runtime: python
@@ -31,7 +31,7 @@ services:
     plan: free
     region: singapore
     buildCommand: pip install -r requirements.txt && python manage.py collectstatic --no-input
-    startCommand: python manage.py migrate --no-input && daphne -b 0.0.0.0 -p $PORT mainProject.asgi:application
+    startCommand: python manage.py migrate --no-input && honcho start --procfile Procfile
     healthCheckPath: /
     envVars:
       - fromGroup: parallels-shared

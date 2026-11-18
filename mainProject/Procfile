@@ -1,0 +1,2 @@
+web: daphne -b 0.0.0.0 -p $PORT mainProject.asgi:application
+worker: celery -A mainProject worker --loglevel=INFO --concurrency=2 --hostname=render-celery@%h

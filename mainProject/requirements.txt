@@ -7,6 +7,7 @@ daphne==4.2.1
 dj-database-url==2.3.0
 django-storages[s3]==1.14.6
 djangorestframework==3.18.1
+honcho==2.0.0
 numpy==2.2.6
 Pillow==11.3.0
 psycopg[binary]==3.2.9
