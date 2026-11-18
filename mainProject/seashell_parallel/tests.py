@@ -373,6 +373,33 @@ class MultiImageUploadTests(TestCase):
 		self.assertContains(response, 'Image unavailable')
 		self.assertContains(response, 'result-thumbnail-placeholder')
 
+	def test_dashboard_uses_storage_url_for_image_preview(self):
+		batch = ClassificationBatch.objects.create(
+			user=self.user,
+			total_images=1,
+		)
+		result = ClassificationResult.objects.create(
+			batch=batch,
+			image='media/classification_images/example.png',
+		)
+		cloudinary_url = (
+			'https://res.cloudinary.com/example/image/upload/v1/'
+			'media/classification_images/example.png'
+		)
+
+		with patch.object(
+			result.image.storage,
+			'url',
+			return_value=cloudinary_url,
+		):
+			response = self.client.get(reverse('dashboard'))
+
+		self.assertContains(response, f'src="{cloudinary_url}"')
+		self.assertNotContains(
+			response,
+			'src="/media/media/classification_images/example.png"',
+		)
+
 	def tearDown(self):
 		self.media_override.disable()
 		self.media_root.cleanup()

@@ -133,17 +133,6 @@ document.querySelectorAll('[data-batch-id]').forEach((batch) => {
   connect();
 });
 
-document.querySelectorAll('.result-image').forEach((cell) => {
-  const imagePath = cell.textContent.trim();
-  if (!imagePath || imagePath === '-') return;
-  cell.textContent = '';
-  const image = document.createElement('img');
-  image.className = 'result-thumbnail';
-  image.src = `/media/${imagePath}`;
-  image.alt = imagePath;
-  cell.append(image);
-});
-
 document.querySelectorAll('[data-field="confidence"]').forEach((element) => {
   const value = Number(element.textContent.trim());
   if (!Number.isNaN(value)) element.textContent = `${(value * 100).toFixed(1)}%`;
