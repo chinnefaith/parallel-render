@@ -11,6 +11,8 @@ envVarGroups:
         value: "false"
       - key: CLOUDINARY_URL
         sync: false
+      - key: REQUIRE_CLOUDINARY_STORAGE
+        value: "true"
       - key: CELERY_TASK_ALWAYS_EAGER
         value: "false"
       - key: SEASHELL_NODE_NAME

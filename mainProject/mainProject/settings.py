@@ -71,6 +71,15 @@ if (
 CLOUDINARY_STORAGE_CONFIGURED = bool(cloudinary_url) or (
     cloudinary_credentials_count == len(cloudinary_credentials)
 )
+REQUIRE_CLOUDINARY_STORAGE = (
+    os.environ.get('REQUIRE_CLOUDINARY_STORAGE', 'False').lower()
+    in {'true', '1', 'yes'}
+)
+if REQUIRE_CLOUDINARY_STORAGE and not CLOUDINARY_STORAGE_CONFIGURED:
+    raise ImproperlyConfigured(
+        'Cloudinary credentials must be configured when '
+        'REQUIRE_CLOUDINARY_STORAGE is enabled.'
+    )
 if CLOUDINARY_STORAGE_CONFIGURED and not cloudinary_url:
     CLOUDINARY_STORAGE = cloudinary_credentials
 
