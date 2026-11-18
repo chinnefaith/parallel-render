@@ -1,5 +1,8 @@
 import logging
+import shutil
+import tempfile
 import time
+from pathlib import Path
 
 from celery import shared_task
 from django.db import transaction
@@ -76,7 +79,12 @@ def classify_image(self, result_id):
 		publish_batch_progress(result.batch_id, result.pk)
 
 		inference_started_at = time.perf_counter()
-		prediction = run_classifier(result.image.path)
+		with tempfile.TemporaryDirectory() as temp_dir:
+			image_path = Path(temp_dir) / f'image{Path(result.image.name).suffix}'
+			with result.image.open('rb') as image_file:
+				with image_path.open('wb') as local_image:
+					shutil.copyfileobj(image_file, local_image)
+			prediction = run_classifier(image_path)
 		model_inference_time = time.perf_counter() - inference_started_at
 		processing_time = time.perf_counter() - started_at
 

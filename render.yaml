@@ -1,0 +1,48 @@
+envVarGroups:
+  - name: parallels-shared
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "false"
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com,localhost,127.0.0.1"
+      - key: ALLOW_EPHEMERAL_MEDIA
+        value: "true"
+      - key: CELERY_TASK_ALWAYS_EAGER
+        value: "true"
+
+services:
+  - type: keyvalue
+    name: parallels-redis
+    plan: free
+    region: singapore
+    ipAllowList: []
+
+  # Disposable demo: classification runs in the web process; uploads are ephemeral.
+  - type: web
+    name: parallels-web
+    runtime: python
+    rootDir: mainProject
+    plan: free
+    region: singapore
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --no-input
+    startCommand: python manage.py migrate --no-input && daphne -b 0.0.0.0 -p $PORT mainProject.asgi:application
+    healthCheckPath: /
+    envVars:
+      - fromGroup: parallels-shared
+      - key: DATABASE_URL
+        fromDatabase:
+          name: parallels-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: parallels-redis
+          property: connectionString
+
+databases:
+  - name: parallels-db
+    databaseName: parallels
+    plan: free
+    region: singapore

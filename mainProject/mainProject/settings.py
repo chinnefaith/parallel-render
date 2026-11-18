@@ -1,6 +1,9 @@
 from pathlib import Path
 import os
 
+import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
+
 # ============================================================
 # BASE DIRECTORY
 # ============================================================
@@ -12,17 +15,40 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY
 # ============================================================
 
-SECRET_KEY = os.environ.get(
-    'DJANGO_SECRET_KEY',
-    'django-insecure-development-only-key'
-)
+DEBUG = os.environ.get('DEBUG', 'True').lower() in {'true', '1', 'yes'}
 
-DEBUG = True
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
+if not SECRET_KEY:
+    if not DEBUG:
+        raise ImproperlyConfigured(
+            'DJANGO_SECRET_KEY must be configured when DEBUG is disabled.'
+        )
+    SECRET_KEY = 'django-insecure-development-only-key'
 
 ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
+    host.strip()
+    for host in os.environ.get(
+        'ALLOWED_HOSTS',
+        'localhost,127.0.0.1',
+    ).split(',')
+    if host.strip()
 ]
+render_hostname = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if render_hostname and render_hostname not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(render_hostname)
+
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
+    if origin.strip()
+]
+if render_hostname:
+    CSRF_TRUSTED_ORIGINS.append(f'https://{render_hostname}')
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_SSL_REDIRECT = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
 
 
 # ============================================================
@@ -57,6 +83,7 @@ AUTH_USER_MODEL = 'seashell_parallel.User'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -108,16 +135,17 @@ ASGI_APPLICATION = 'mainProject.asgi.application'
 # ============================================================
 # DATABASE
 # ============================================================
-# SQLite is intentional for this development/academic project.
+database_url = os.environ.get('DATABASE_URL')
+if not DEBUG and not database_url:
+    raise ImproperlyConfigured(
+        'DATABASE_URL must be configured when DEBUG is disabled.'
+    )
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-        'OPTIONS': {
-            'timeout': 30,
-        },
-    }
+    'default': dj_database_url.config(
+        default=f'sqlite:///{BASE_DIR.as_posix()}/db.sqlite3',
+        conn_max_age=600,
+    ),
 }
 
 
@@ -177,6 +205,18 @@ STATICFILES_DIRS = [
 ]
 
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STORAGES = {
+    'default': {
+        'BACKEND': (
+            'storages.backends.s3.S3Storage'
+            if os.environ.get('AWS_STORAGE_BUCKET_NAME')
+            else 'django.core.files.storage.FileSystemStorage'
+        ),
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
+    },
+}
 
 
 # ============================================================
@@ -184,28 +224,55 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # ============================================================
 # Uploaded seaweed images will be stored here during development.
 
-MEDIA_URL = 'media/'
+MEDIA_URL = '/media/'
 
 MEDIA_ROOT = BASE_DIR / 'media'
+
+AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
+AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
+AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME')
+AWS_S3_ENDPOINT_URL = os.environ.get('AWS_S3_ENDPOINT_URL') or None
+AWS_DEFAULT_ACL = None
+AWS_QUERYSTRING_AUTH = True
+AWS_S3_FILE_OVERWRITE = False
+ALLOW_EPHEMERAL_MEDIA = (
+    os.environ.get('ALLOW_EPHEMERAL_MEDIA', 'False').lower()
+    in {'true', '1', 'yes'}
+)
+
+if not DEBUG:
+    if AWS_STORAGE_BUCKET_NAME and not all((
+        AWS_ACCESS_KEY_ID,
+        AWS_SECRET_ACCESS_KEY,
+        AWS_S3_REGION_NAME,
+    )):
+        raise ImproperlyConfigured(
+            'S3 media storage requires AWS_ACCESS_KEY_ID, '
+            'AWS_SECRET_ACCESS_KEY, and AWS_S3_REGION_NAME.'
+        )
+    if not AWS_STORAGE_BUCKET_NAME and not ALLOW_EPHEMERAL_MEDIA:
+        raise ImproperlyConfigured(
+            'Configure S3 media storage or explicitly enable '
+            'ALLOW_EPHEMERAL_MEDIA for a disposable deployment.'
+        )
 
 
 # ============================================================
 # DJANGO CHANNELS
 # ============================================================
 
+REDIS_URL = os.environ.get('REDIS_URL')
+if not DEBUG and not REDIS_URL:
+    raise ImproperlyConfigured(
+        'REDIS_URL must be configured when DEBUG is disabled.'
+    )
+REDIS_URL = REDIS_URL or 'redis://127.0.0.1:6379/0'
+
 CHANNEL_LAYERS = {
     'default': {
-        # Redis 3.0.504 does not support BZPOPMIN, which the sorted-set
-        # backend requires. Pub/sub keeps Channels on Redis without it.
-        'BACKEND': 'channels_redis.pubsub.RedisPubSubChannelLayer',
-        'CONFIG': {
-            'hosts': [
-                {
-                    'address': 'redis://127.0.0.1:6379/2',
-                    'protocol': 2,
-                },
-            ],
-        },
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {'hosts': [REDIS_URL]},
     },
 }
 
@@ -214,9 +281,14 @@ CHANNEL_LAYERS = {
 # CELERY
 # ============================================================
 
-CELERY_BROKER_URL = 'redis://127.0.0.1:6379/0'
+CELERY_BROKER_URL = REDIS_URL
 
-CELERY_RESULT_BACKEND = 'redis://127.0.0.1:6379/1'
+CELERY_RESULT_BACKEND = REDIS_URL
+CELERY_TASK_ALWAYS_EAGER = (
+    os.environ.get('CELERY_TASK_ALWAYS_EAGER', 'False').lower()
+    in {'true', '1', 'yes'}
+)
+CELERY_TASK_EAGER_PROPAGATES = True
 
 CELERY_ACCEPT_CONTENT = [
     'json',
@@ -227,10 +299,6 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 
 CELERY_TIMEZONE = 'Asia/Manila'
-
-CELERY_BROKER_TRANSPORT_OPTIONS = {
-    'protocol': 2,
-}
 
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 

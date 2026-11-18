@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+parallel-venv/
+.env
+
+# Local data and generated assets
+db.sqlite3*
+media/
+staticfiles/
+.classification-db.lock

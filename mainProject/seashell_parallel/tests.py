@@ -3,10 +3,9 @@ import io
 import os
 import tempfile
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import PropertyMock, patch
 
 import numpy as np
-import tensorflow as tf
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from channels.testing import WebsocketCommunicator
@@ -267,8 +266,13 @@ class ClassificationTaskTests(TestCase):
 			image=self.create_image(),
 		)
 
-		with patch.dict(os.environ, {'SEAWEED_NODE_NAME': 'NODE_TEST'}):
-			task_result = classify_image.apply(args=[result.pk])
+		with patch.dict(os.environ, {'SEASHELL_NODE_NAME': 'NODE_TEST'}):
+			with patch(
+				'django.db.models.fields.files.FieldFile.path',
+				new_callable=PropertyMock,
+				side_effect=NotImplementedError,
+			):
+				task_result = classify_image.apply(args=[result.pk])
 
 		result.refresh_from_db()
 		batch.refresh_from_db()
@@ -498,7 +502,6 @@ class PreprocessingAlignmentTests(TestCase):
 			with Image.open(image_path) as image:
 				rgb = image.convert('RGB').resize((224, 224))
 				expected = np.asarray(rgb, dtype=np.float32)
-				expected = tf.keras.applications.efficientnet_v2.preprocess_input(expected)
 				expected = np.expand_dims(expected, axis=0).astype(np.float32)
 
 			self.assertEqual(processed.shape, (1, 224, 224, 3))

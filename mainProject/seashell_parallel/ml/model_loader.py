@@ -1,7 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-import tensorflow as tf
+from ai_edge_litert.interpreter import Interpreter
 from django.conf import settings
 
 
@@ -11,6 +11,6 @@ MODEL_PATH = Path(settings.BASE_DIR) / 'seashell_parallel' / 'model' / 'shell_mo
 @lru_cache(maxsize=1)
 def get_interpreter():
 	"""Load one interpreter per worker process and reuse it for later tasks."""
-	interpreter = tf.lite.Interpreter(model_path=str(MODEL_PATH))
+	interpreter = Interpreter(model_path=str(MODEL_PATH))
 	interpreter.allocate_tensors()
 	return interpreter

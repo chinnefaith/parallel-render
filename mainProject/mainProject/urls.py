@@ -8,5 +8,5 @@ urlpatterns = [
     path('', include('seashell_parallel.urls')),
 ]
 
-if settings.DEBUG:
+if settings.DEBUG or settings.ALLOW_EPHEMERAL_MEDIA:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

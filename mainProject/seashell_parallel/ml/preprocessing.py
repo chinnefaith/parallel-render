@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Union
 
 import numpy as np
-import tensorflow as tf
 from PIL import Image
 
 
@@ -28,7 +27,7 @@ def preprocess_for_model(image_or_path: Union[str, Path, Image.Image], *, logger
 			image = opened.convert('RGB')
 			image = image.resize(IMAGE_SIZE)
 			image_array = np.asarray(image, dtype=np.float32)
-			processed = tf.keras.applications.efficientnet_v2.preprocess_input(image_array)
+			processed = image_array
 			processed = np.expand_dims(processed.astype(np.float32), axis=0)
 			if logger_obj is not None:
 				logger_obj.info(
@@ -39,7 +38,7 @@ def preprocess_for_model(image_or_path: Union[str, Path, Image.Image], *, logger
 
 	image = image.convert('RGB').resize(IMAGE_SIZE)
 	image_array = np.asarray(image, dtype=np.float32)
-	processed = tf.keras.applications.efficientnet_v2.preprocess_input(image_array)
+	processed = image_array
 	processed = np.expand_dims(processed.astype(np.float32), axis=0)
 	if logger_obj is not None:
 		logger_obj.info(
